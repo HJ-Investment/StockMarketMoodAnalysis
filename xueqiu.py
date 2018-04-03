@@ -1,7 +1,8 @@
+# -*- coding: utf-8 -*-
 import time
-from api.common_func import *
+#from api.common_func import *
 import uuid
-from api.entity import *
+#from api.entity import *
 import random,requests
 import urllib,json
 import pymysql,logging
