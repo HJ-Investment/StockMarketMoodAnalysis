@@ -1,15 +1,12 @@
 import time
-from api.common_func import *
-import uuid
-from api.entity import *
 import random,requests
-import urllib,json
+import json
 import pymysql,logging
 
 logger = logging.getLogger('get_xueqiu_data')
 logger.setLevel(logging.DEBUG)
 # 创建一个handler，用于写入日志文件
-fh = logging.FileHandler('/get_xueqiu_data.log')
+fh = logging.FileHandler('/get_xueqiu_data.log',encoding='UTF-8')
 fh.setLevel(logging.DEBUG)
 # 再创建一个handler，用于输出到控制台
 ch = logging.StreamHandler()
@@ -84,12 +81,14 @@ def store_data():
     progress_bar=[]
     for stock_symbol in stocks_list:
         stock_name=stocks[stock_symbol]
+        print("stock_name:%s,stock_symbol:%s"%(stock_name,stock_symbol))
+
         start_time=time.time()
         comment_list_10 = get_xueqiu_data(stock_symbol)
         end_time=time.time()
-        print(comment_list_10)
+        # print(comment_list_10)
         logger.info(stock_name+'('+stock_symbol+'):\n')
-        # logger.info(comment_list_10)
+        logger.info(comment_list_10)
         print("抓取数据耗时:%r"%(end_time-start_time))
 
         for comments in comment_list_10:
@@ -120,7 +119,7 @@ def store_data():
                              comments_user_id,comments_user_screen_name,comments_user_friends_count,
                              comments_user_followers_count,create_date)
                 db_start_time=time.time()
-                modify_data(db,cursor,insert_sql)
+                # modify_data(db,cursor,insert_sql)
                 db_end_time = time.time()
                 print("插入数据库耗时：%r"%(db_end_time-db_start_time))
         progress_bar.append('#')
