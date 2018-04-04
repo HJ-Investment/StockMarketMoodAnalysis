@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 import time
+import uuid
 import random,requests
 import json
 import pymysql,logging
