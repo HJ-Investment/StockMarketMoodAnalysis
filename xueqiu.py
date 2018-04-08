@@ -80,7 +80,7 @@ def store_data():
     db_resp = connect_db()
     db = db_resp['db']
     cursor = db_resp['cursor']
-    progress_bar=[]
+    progress_bar="[                                                  ]"
     for stock_symbol in stocks_list:
         stock_name=stocks[stock_symbol]
         print("stock_name:%s,stock_symbol:%s"%(stock_name,stock_symbol))
@@ -97,7 +97,7 @@ def store_data():
             # print(comment["text"])
             # print("")
             if stock_symbol+")$" in comments['text']:
-                print(comments['text'])
+                # print(comments['text'])
                 comments_stock = stock_symbol
                 comments_id = comments['id']
                 created_at = comments['created_at']/1000
@@ -124,7 +124,7 @@ def store_data():
                 # modify_data(db,cursor,insert_sql)
                 db_end_time = time.time()
                 print("插入数据库耗时：%r"%(db_end_time-db_start_time))
-        progress_bar.append('#')
+        progress_bar.replace("","#",1)
         print(progress_bar)
     db_close(db)
 
