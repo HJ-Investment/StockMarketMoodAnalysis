@@ -3,12 +3,12 @@ import time
 import uuid
 import random,requests
 import json
-import pymysql,logging
+import pymysql,logging,traceback
 
 logger = logging.getLogger('get_xueqiu_data')
 logger.setLevel(logging.DEBUG)
 # 创建一个handler，用于写入日志文件
-fh = logging.FileHandler('/get_xueqiu_data.log',encoding='UTF-8')
+fh = logging.FileHandler('D:/get_xueqiu_data.log',encoding='UTF-8')
 fh.setLevel(logging.DEBUG)
 # 再创建一个handler，用于输出到控制台
 ch = logging.StreamHandler()
@@ -37,34 +37,44 @@ def get_xueqiu_data(symbol):
         'user-agent': "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
         }
     s=requests.session()
+    try:
+        for i in range(1,11):
+            querystring['page']=i
+            s.get("https://xueqiu.com/S/" + symbol, headers=headers)
+            resp = s.get(url, headers=headers, params=querystring)
+            comment_list=json.loads(resp.text)
+            print(comment_list['list'])
+            # time.sleep(3)
+            comment_list_10=comment_list_10+comment_list['list']
+        return comment_list_10
+    except:
+        logger.exception("Exception Logged")
+        return comment_list_10
 
-    for i in range(1,11):
-        querystring['page']=i
-        s.get("https://xueqiu.com/S/" + symbol, headers=headers)
-        resp = s.get(url, headers=headers, params=querystring)
-        comment_list=json.loads(resp.text)
-        # print(comment_list['list'])
-        time.sleep(3)
-        comment_list_10=comment_list_10+comment_list['list']
-    return comment_list_10
 
 # comment_list_10=get_xueqiu_data("SH600340")
 # print(comment_list_10)
 
 def connect_db():
-    db = pymysql.connect("45.76.77.76", "root", "123456654321", "stockMarketMoodAnalysis", charset='utf8')
-    cursor = db.cursor()
-    return {"db":db,"cursor":cursor}
+    try:
+        db = pymysql.connect("45.76.77.76", "root", "123456654321", "stockMarketMoodAnalysis", charset='utf8')
+        cursor = db.cursor()
+        return {"db": db, "cursor": cursor}
+    except:
+        logger.exception("Exception Logged")
+        return {"db":"","cursor":""}
+
+
 
 def modify_data(db,cursor,modify_sql):
     try:
         cursor.execute(modify_sql)
         db.commit()
         return 1
-    except():
+    except:#3的语法except  2的语法是except Exception,e:  logger.info(traceback.print_exc(e))
         db.rollback()
+        logger.exception("Exception Logged")
         logger.info("modify_sql: %s"%modify_sql)
-        logger.info("modify_db_fail")
         return 0
 def db_close(db):
     db.close()
@@ -84,48 +94,54 @@ def store_data():
     for stock_symbol in stocks_list:
         stock_name=stocks[stock_symbol]
         print("stock_name:%s,stock_symbol:%s"%(stock_name,stock_symbol))
-
+        logger.info(stock_name + '(' + stock_symbol + '):\n')
         start_time=time.time()
         comment_list_10 = get_xueqiu_data(stock_symbol)
         end_time=time.time()
-        # print(comment_list_10)
-        logger.info(stock_name+'('+stock_symbol+'):\n')
-        logger.info(comment_list_10)
         print("抓取数据耗时:%r"%(end_time-start_time))
+        if comment_list_10!=[]:
+            try:
+                for comments in comment_list_10:
+                    # print(comment["text"])
+                    # print("")
+                    if stock_symbol+")$" in comments['text']:
+                        # print(comments['text'])
+                        comments_stock = stock_symbol
+                        comments_id = comments['id']
+                        created_at = comments['created_at']/1000
+                        time_local = time.localtime(created_at)
+                        comments_created_at = time.strftime("%Y-%m-%d %H:%M:%S", time_local)
+                        comments_title = comments['title']
+                        comments_text = comments['text']
+                        comments_retweet_count = comments['retweet_count']#转发
+                        comments_like_count = comments['like_count']#点赞
+                        comments_user_id = comments['user_id']
+                        comments_user_screen_name = comments['user']['screen_name']
+                        comments_user_friends_count = set_None_to_zero(comments['user']['friends_count'])
+                        comments_user_followers_count = set_None_to_zero(comments['user']['followers_count'])
+                        create_date=str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())))
+                        insert_sql = "INSERT INTO original_xueqiu_data_copy_test (comments_stock,comments_id,comments_created_at," \
+                                     "comments_title,comments_text,comments_retweet_count,comments_like_count," \
+                                     "comments_user_id,comments_screen_name,comments_user_friends_count," \
+                                     "comments_user_followers_count,create_date) VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"\
+                                     % (comments_stock,comments_id,comments_created_at,
+                                     comments_title,comments_text,comments_retweet_count,comments_like_count,
+                                     comments_user_id,comments_user_screen_name,comments_user_friends_count,
+                                     comments_user_followers_count,create_date)
 
-        for comments in comment_list_10:
-            # print(comment["text"])
-            # print("")
-            if stock_symbol+")$" in comments['text']:
-                # print(comments['text'])
-                comments_stock = stock_symbol
-                comments_id = comments['id']
-                created_at = comments['created_at']/1000
-                time_local = time.localtime(created_at)
-                comments_created_at = time.strftime("%Y-%m-%d %H:%M:%S", time_local)
-                comments_title = comments['title']
-                comments_text = comments['text']
-                comments_retweet_count = comments['retweet_count']#转发
-                comments_like_count = comments['like_count']#点赞
-                comments_user_id = comments['user_id']
-                comments_user_screen_name = comments['user']['screen_name']
-                comments_user_friends_count = set_None_to_zero(comments['user']['friends_count'])
-                comments_user_followers_count = set_None_to_zero(comments['user']['followers_count'])
-                create_date=str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())))
-                insert_sql = "INSERT INTO original_xueqiu_data_copy_test (comments_stock,comments_id,comments_created_at," \
-                             "comments_title,comments_text,comments_retweet_count,comments_like_count," \
-                             "comments_user_id,comments_screen_name,comments_user_friends_count," \
-                             "comments_user_followers_count,create_date) VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"\
-                             % (comments_stock,comments_id,comments_created_at,
-                             comments_title,comments_text,comments_retweet_count,comments_like_count,
-                             comments_user_id,comments_user_screen_name,comments_user_friends_count,
-                             comments_user_followers_count,create_date)
-                db_start_time=time.time()
-                # modify_data(db,cursor,insert_sql)
-                db_end_time = time.time()
-                print("插入数据库耗时：%r"%(db_end_time-db_start_time))
-        progress_bar.replace("","#",1)
-        print(progress_bar)
+                        if db!="" and cursor!="":
+                            db_start_time = time.time()
+                            modify_data(db,cursor,insert_sql)
+                            db_end_time = time.time()
+                            print("插入数据库耗时：%r"%(db_end_time-db_start_time))
+                        else:
+                            logger.info("连接数据库失败，没有插入数据库")
+            except:
+                logger.exception("Exception Logged")
+        else:
+            logger.info("抓取数据为空")
+        progress_bar_re=progress_bar.replace(" ", "#", 1)
+        print(progress_bar_re)
     db_close(db)
 
 
@@ -133,6 +149,9 @@ print("开始时间：%r"%time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time
 store_data()
 print("结束时间：%r"%time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())))
 
-# content = requests.get("https://beecloud.cn")
 
-# f_xueqiu_data.close()
+# try:
+#     print("11"+a)
+# except:
+#     logger.exception("Exception Logged")
+    # logger.info(e.with_traceback())
