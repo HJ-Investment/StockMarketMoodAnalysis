@@ -3,7 +3,7 @@ import time
 import uuid
 import random,requests
 import json
-import pymysql,logging,traceback
+import pymysql,logging
 
 logger = logging.getLogger('get_xueqiu_data')
 logger.setLevel(logging.DEBUG)
