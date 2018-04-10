@@ -43,9 +43,11 @@ def get_xueqiu_data(symbol):
             s.get("https://xueqiu.com/S/" + symbol, headers=headers)
             resp = s.get(url, headers=headers, params=querystring)
             comment_list=json.loads(resp.text)
-            print(comment_list['list'])
-            # time.sleep(3)
-            comment_list_10=comment_list_10+comment_list['list']
+            if 'list' in comment_list.keys():
+                time.sleep(3)
+                comment_list_10=comment_list_10+comment_list['list']
+            else:
+                logger.info(comment_list)
         return comment_list_10
     except:
         logger.exception("Exception Logged")
@@ -140,8 +142,8 @@ def store_data():
                 logger.exception("Exception Logged")
         else:
             logger.info("抓取数据为空")
-        progress_bar_re=progress_bar.replace(" ", "#", 1)
-        print(progress_bar_re)
+        progress_bar=progress_bar.replace(" ", "#", 1)
+        print(progress_bar)
     db_close(db)
 
 
