@@ -59,7 +59,7 @@ def get_xueqiu_data(symbol):
 
 def connect_db():
     try:
-        db = pymysql.connect("45.76.77.76", "root", "123456654321", "stockMarketMoodAnalysis", charset='utf8')
+        db = pymysql.connect("*******", "****", "********", "*******", charset='utf8')
         cursor = db.cursor()
         return {"db": db, "cursor": cursor}
     except:
